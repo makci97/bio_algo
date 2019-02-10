@@ -1,26 +1,32 @@
 import sys
+from collections import Counter
 
 
-def pattern_count(text, pattern):
-    count = 0
-    pattern_size = len(pattern)
-    for i in range(len(text) - pattern_size):
-        if text[i:i + pattern_size] == pattern:
-            count += 1
-    return count
+def create_freq_dict(text, k):
+    return Counter([text[i:i + k] for i in range(len(text) - k)])
 
 
-def t_frequent_words(text, k, t):
-    counts_cache = dict()
-    # counts = []
-    for i in range(len(text) - k):
-        pattern = text[i:i + k]
-        if pattern not in counts_cache:
-            counts_cache[pattern] = pattern_count(text, pattern)
-        # counts.append(counts_cache[pattern])
-    # print(*zip(text, counts), sep='\n')
+def update_freq_patterns(freq_patterns, freq_dict, t):
+    freq_patterns.update({
+        pattern for pattern, count in freq_dict.items() if count >= t
+    })
 
-    return sorted([pattern for pattern, count in counts_cache.items() if count >= t])
+
+def find_clumps(genome, k, t, l):
+    freq_patterns = set()
+    freq_dict = create_freq_dict(genome[:l], k)
+    update_freq_patterns(freq_patterns, freq_dict, t)
+
+    for i in range(1, len(genome) - l):
+        old_pattern = genome[(i - 1):(i - 1 + k)]
+        new_pattern = genome[(i + l - k):(i + l)]
+
+        freq_dict[old_pattern] -= 1
+        freq_dict[new_pattern] += 1
+        if freq_dict[new_pattern] >= t:
+            freq_patterns.add(new_pattern)
+
+    return sorted(freq_patterns)
 
 
 if __name__ == "__main__":
@@ -29,9 +35,9 @@ if __name__ == "__main__":
 
     # read
     with open(input_filename, 'r') as file:
-        text = str(file.readline().strip())
+        genome = str(file.readline().strip())
         k, l, t = map(int, file.readline().strip().split())
 
     # write
     with open(output_filename, 'w') as file:
-        file.write(' '.join(map(lambda seq: ''.join(map(str, seq)), t_frequent_words(text, k, t))))
+        file.write(' '.join(map(lambda seq: ''.join(map(str, seq)), find_clumps(genome, k, t, l))))
